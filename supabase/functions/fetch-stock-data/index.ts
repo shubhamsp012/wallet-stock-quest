@@ -26,22 +26,31 @@ serve(async (req) => {
 
     console.log('Fetching data for symbol:', symbol);
 
-    // Remove exchange suffix for Alpha Vantage
-    const cleanSymbol = symbol.replace(/\.(BSE|NSE)$/, '');
+    // Convert Indian exchange suffixes to Alpha Vantage format
+    // NSE (National Stock Exchange) -> .NS
+    // BSE (Bombay Stock Exchange) -> .BO
+    let alphaVantageSymbol = symbol;
+    if (symbol.endsWith('.NSE')) {
+      alphaVantageSymbol = symbol.replace('.NSE', '.NS');
+    } else if (symbol.endsWith('.BSE')) {
+      alphaVantageSymbol = symbol.replace('.BSE', '.BO');
+    }
+    
+    console.log('Alpha Vantage symbol format:', alphaVantageSymbol);
     
     // Check cache
-    const cacheKey = `${cleanSymbol}_quote`;
+    const cacheKey = `${alphaVantageSymbol}_quote`;
     const cached = cache.get(cacheKey);
     if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
-      console.log('Returning cached data for:', cleanSymbol);
+      console.log('Returning cached data for:', alphaVantageSymbol);
       return new Response(JSON.stringify(cached.data), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
     // Fetch real-time quote
-    const quoteUrl = `https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol=${cleanSymbol}&apikey=${ALPHA_VANTAGE_API_KEY}`;
-    console.log('Fetching quote from Alpha Vantage');
+    const quoteUrl = `https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol=${alphaVantageSymbol}&apikey=${ALPHA_VANTAGE_API_KEY}`;
+    console.log('Fetching quote from Alpha Vantage for:', alphaVantageSymbol);
     
     const quoteResponse = await fetch(quoteUrl);
     const quoteData = await quoteResponse.json();
@@ -57,8 +66,8 @@ serve(async (req) => {
     }
 
     // Fetch monthly historical data
-    const monthlyUrl = `https://www.alphavantage.co/query?function=TIME_SERIES_MONTHLY&symbol=${cleanSymbol}&apikey=${ALPHA_VANTAGE_API_KEY}`;
-    console.log('Fetching monthly data from Alpha Vantage');
+    const monthlyUrl = `https://www.alphavantage.co/query?function=TIME_SERIES_MONTHLY&symbol=${alphaVantageSymbol}&apikey=${ALPHA_VANTAGE_API_KEY}`;
+    console.log('Fetching monthly data from Alpha Vantage for:', alphaVantageSymbol);
     
     const monthlyResponse = await fetch(monthlyUrl);
     const monthlyData = await monthlyResponse.json();
@@ -82,8 +91,8 @@ serve(async (req) => {
     const low = parseFloat(quote['04. low']);
 
     const result = {
-      symbol: cleanSymbol,
-      name: cleanSymbol + ' Limited',
+      symbol: symbol.replace(/\.(BSE|NSE)$/, ''),
+      name: symbol.replace(/\.(BSE|NSE)$/, '') + ' Limited',
       price: currentPrice.toFixed(2),
       change: change.toFixed(2),
       changePercent: changePercent.toFixed(2),
@@ -96,7 +105,7 @@ serve(async (req) => {
 
     // Cache the result
     cache.set(cacheKey, { data: result, timestamp: Date.now() });
-    console.log('Successfully fetched and cached data for:', cleanSymbol);
+    console.log('Successfully fetched and cached data for:', alphaVantageSymbol);
 
     return new Response(JSON.stringify(result), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
