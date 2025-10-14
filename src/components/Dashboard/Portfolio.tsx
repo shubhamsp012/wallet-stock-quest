@@ -19,12 +19,33 @@ export const Portfolio = () => {
 
       if (error) throw error;
 
-      // Mock current prices for demo
-      return data.map((item) => ({
-        ...item,
-        currentPrice: parseFloat(item.average_buy_price) * (0.9 + Math.random() * 0.2),
-      }));
+      // Fetch current prices from Alpha Vantage
+      const portfolioWithPrices = await Promise.all(
+        data.map(async (item) => {
+          try {
+            const { data: stockData, error: stockError } = await supabase.functions.invoke('fetch-stock-data', {
+              body: { symbol: item.stock_symbol }
+            });
+
+            if (stockError) throw stockError;
+
+            return {
+              ...item,
+              currentPrice: parseFloat(stockData.price),
+            };
+          } catch (error) {
+            console.error(`Error fetching price for ${item.stock_symbol}:`, error);
+            return {
+              ...item,
+              currentPrice: parseFloat(item.average_buy_price),
+            };
+          }
+        })
+      );
+
+      return portfolioWithPrices;
     },
+    refetchInterval: 60000, // Refresh every minute
   });
 
   if (isLoading) {

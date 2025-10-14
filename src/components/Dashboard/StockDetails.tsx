@@ -7,6 +7,7 @@ import { useState } from "react";
 import { TradeModal } from "./TradeModal";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 
 interface StockDetailsProps {
   symbol: string;
@@ -19,25 +20,14 @@ export const StockDetails = ({ symbol }: StockDetailsProps) => {
   const { data: stockData, isLoading, error } = useQuery({
     queryKey: ["stock", symbol],
     queryFn: async () => {
-      // Mock data for demonstration - in production, use real API
-      await new Promise((resolve) => setTimeout(resolve, 500));
-      
-      const basePrice = Math.random() * 3000 + 500;
-      const change = (Math.random() - 0.5) * 100;
-      const changePercent = (change / basePrice) * 100;
-      
-      return {
-        symbol: symbol.replace(".BSE", ""),
-        name: symbol.replace(".BSE", "") + " Limited",
-        price: basePrice.toFixed(2),
-        change: change.toFixed(2),
-        changePercent: changePercent.toFixed(2),
-        high: (basePrice + Math.abs(change) * 1.5).toFixed(2),
-        low: (basePrice - Math.abs(change) * 1.5).toFixed(2),
-        previousClose: (basePrice - change).toFixed(2),
-      };
+      const { data, error } = await supabase.functions.invoke('fetch-stock-data', {
+        body: { symbol }
+      });
+
+      if (error) throw error;
+      return data;
     },
-    refetchInterval: 5000, // Auto-refresh every 5 seconds
+    refetchInterval: 60000, // Auto-refresh every minute
   });
 
   const { data: isWatchlisted, refetch: refetchWatchlist } = useQuery({
@@ -155,6 +145,36 @@ export const StockDetails = ({ symbol }: StockDetailsProps) => {
               <p className="font-semibold">₹{stockData.previousClose}</p>
             </div>
           </div>
+
+          {stockData.historicalData && stockData.historicalData.length > 0 && (
+            <div className="mt-6">
+              <h3 className="text-sm font-semibold mb-3">5-Month Performance</h3>
+              <div className="h-64">
+                <ResponsiveContainer width="100%" height="100%">
+                  <LineChart data={stockData.historicalData}>
+                    <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                    <XAxis dataKey="month" className="text-xs" />
+                    <YAxis className="text-xs" />
+                    <Tooltip 
+                      contentStyle={{ 
+                        backgroundColor: 'hsl(var(--card))', 
+                        border: '1px solid hsl(var(--border))',
+                        borderRadius: '8px'
+                      }}
+                      formatter={(value: number) => [`₹${value.toFixed(2)}`, 'Price']}
+                    />
+                    <Line 
+                      type="monotone" 
+                      dataKey="value" 
+                      stroke="hsl(var(--primary))" 
+                      strokeWidth={2}
+                      dot={{ fill: 'hsl(var(--primary))' }}
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+          )}
 
           <div className="flex gap-2 pt-4">
             <Button
