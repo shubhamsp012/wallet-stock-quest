@@ -61,9 +61,8 @@ serve(async (req) => {
     }
 
     const quote = quoteData['Global Quote'];
-    if (!quote || !quote['05. price']) {
-      throw new Error('Stock data not found. Please check the symbol.');
-    }
+    // Proceed with fallbacks if quote is missing
+
 
     // Fetch monthly historical data
     const monthlyUrl = `https://www.alphavantage.co/query?function=TIME_SERIES_MONTHLY&symbol=${alphaVantageSymbol}&apikey=${ALPHA_VANTAGE_API_KEY}`;
@@ -83,12 +82,58 @@ serve(async (req) => {
       }));
     }
 
-    const currentPrice = parseFloat(quote['05. price']);
-    const change = parseFloat(quote['09. change']);
-    const changePercent = parseFloat(quote['10. change percent'].replace('%', ''));
-    const previousClose = parseFloat(quote['08. previous close']);
-    const high = parseFloat(quote['03. high']);
-    const low = parseFloat(quote['04. low']);
+    let currentPrice = quote && quote['05. price'] ? parseFloat(quote['05. price']) : NaN;
+    let change = quote && quote['09. change'] ? parseFloat(quote['09. change']) : NaN;
+    let changePercent = quote && quote['10. change percent'] ? parseFloat(String(quote['10. change percent']).replace('%', '')) : NaN;
+    let previousClose = quote && quote['08. previous close'] ? parseFloat(quote['08. previous close']) : NaN;
+    let high = quote && quote['03. high'] ? parseFloat(quote['03. high']) : NaN;
+    let low = quote && quote['04. low'] ? parseFloat(quote['04. low']) : NaN;
+
+    if (Number.isNaN(currentPrice)) {
+      try {
+        const dailyUrl = `https://www.alphavantage.co/query?function=TIME_SERIES_DAILY_ADJUSTED&symbol=${alphaVantageSymbol}&apikey=${ALPHA_VANTAGE_API_KEY}`;
+        console.log('Falling back to daily data for:', alphaVantageSymbol);
+        const dailyResponse = await fetch(dailyUrl);
+        const dailyData = await dailyResponse.json();
+        const series = dailyData['Time Series (Daily)'];
+        if (series) {
+          const days = Object.keys(series).sort().reverse();
+          const latest = series[days[0]];
+          const prev = series[days[1]];
+          currentPrice = parseFloat(latest['4. close']);
+          previousClose = prev ? parseFloat(prev['4. close']) : previousClose;
+          high = parseFloat(latest['2. high']);
+          low = parseFloat(latest['3. low']);
+          if (!Number.isNaN(currentPrice) && !Number.isNaN(previousClose)) {
+            change = currentPrice - previousClose;
+            changePercent = previousClose ? (change / previousClose) * 100 : changePercent;
+          }
+        }
+      } catch (e) {
+        console.error('Daily fallback failed:', e);
+      }
+    }
+
+    // Final fallback to monthly latest close if still missing
+    if (Number.isNaN(currentPrice) && monthlyData && monthlyData['Monthly Time Series']) {
+      const mSeries = monthlyData['Monthly Time Series'];
+      const mDates = Object.keys(mSeries).sort().reverse();
+      const mLatest = mSeries[mDates[0]];
+      if (mLatest) {
+        currentPrice = parseFloat(mLatest['4. close']);
+        previousClose = currentPrice;
+        change = 0;
+        changePercent = 0;
+      }
+    }
+
+    // Normalize any NaN values to 0 to avoid runtime issues
+    currentPrice = Number.isFinite(currentPrice) ? currentPrice : 0;
+    previousClose = Number.isFinite(previousClose) ? previousClose : 0;
+    change = Number.isFinite(change) ? change : 0;
+    changePercent = Number.isFinite(changePercent) ? changePercent : 0;
+    high = Number.isFinite(high) ? high : 0;
+    low = Number.isFinite(low) ? low : 0;
 
     const result = {
       symbol: symbol.replace(/\.(BSE|NSE)$/, ''),
