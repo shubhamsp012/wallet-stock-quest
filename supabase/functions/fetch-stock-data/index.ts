@@ -91,6 +91,39 @@ serve(async (req) => {
 
     if (Number.isNaN(currentPrice)) {
       try {
+        // Try intraday 5min first for fresher price
+        const intradayUrl = `https://www.alphavantage.co/query?function=TIME_SERIES_INTRADAY&symbol=${alphaVantageSymbol}&interval=5min&outputsize=compact&apikey=${ALPHA_VANTAGE_API_KEY}`;
+        console.log('Falling back to intraday (5min) for:', alphaVantageSymbol);
+        const intradayResponse = await fetch(intradayUrl);
+        const intradayData = await intradayResponse.json();
+        const intradaySeries = intradayData['Time Series (5min)'];
+        if (intradaySeries) {
+          const times = Object.keys(intradaySeries).sort().reverse();
+          const latest = intradaySeries[times[0]];
+          const prev = intradaySeries[times[1]];
+          currentPrice = parseFloat(latest['4. close']);
+          previousClose = prev ? parseFloat(prev['4. close']) : previousClose;
+          high = Math.max(
+            Number.isFinite(high) ? high : 0,
+            parseFloat(latest['2. high'])
+          );
+          low = Math.min(
+            Number.isFinite(low) ? low : parseFloat(latest['3. low']),
+            parseFloat(latest['3. low'])
+          );
+          if (!Number.isNaN(currentPrice) && !Number.isNaN(previousClose)) {
+            change = currentPrice - previousClose;
+            changePercent = previousClose ? (change / previousClose) * 100 : changePercent;
+          }
+        }
+      } catch (e) {
+        console.error('Intraday fallback failed:', e);
+      }
+    }
+
+    // If still missing, try daily adjusted
+    if (Number.isNaN(currentPrice)) {
+      try {
         const dailyUrl = `https://www.alphavantage.co/query?function=TIME_SERIES_DAILY_ADJUSTED&symbol=${alphaVantageSymbol}&apikey=${ALPHA_VANTAGE_API_KEY}`;
         console.log('Falling back to daily data for:', alphaVantageSymbol);
         const dailyResponse = await fetch(dailyUrl);
@@ -134,6 +167,15 @@ serve(async (req) => {
     changePercent = Number.isFinite(changePercent) ? changePercent : 0;
     high = Number.isFinite(high) ? high : 0;
     low = Number.isFinite(low) ? low : 0;
+
+    // If we couldn't get a valid price, serve last cached result as stale to avoid 0.00 UI
+    if ((!currentPrice || currentPrice === 0) && cached) {
+      const stale = { ...cached.data, stale: true, lastUpdate: new Date().toISOString() };
+      console.log('Serving stale cached data for:', alphaVantageSymbol);
+      return new Response(JSON.stringify(stale), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
 
     const result = {
       symbol: symbol.replace(/\.(BSE|NSE)$/, ''),
