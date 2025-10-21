@@ -26,160 +26,183 @@ serve(async (req) => {
 
     console.log('Fetching data for symbol:', symbol);
 
-    // Convert Indian exchange suffixes to Alpha Vantage format
-    // NSE (National Stock Exchange) -> .NS
-    // BSE (Bombay Stock Exchange) -> .BO
-    let alphaVantageSymbol = symbol;
-    if (symbol.endsWith('.NSE')) {
-      alphaVantageSymbol = symbol.replace('.NSE', '.NS');
-    } else if (symbol.endsWith('.BSE')) {
-      alphaVantageSymbol = symbol.replace('.BSE', '.BO');
-    }
+    // Sanitize input symbol
+    const sanitized = String(symbol).trim().toUpperCase().replace(/['"]/g, '').replace(/\s+/g, '');
     
-    console.log('Alpha Vantage symbol format:', alphaVantageSymbol);
+    // Convert Indian exchange suffixes to Alpha Vantage format
+    // .NSE -> .NS (National Stock Exchange)
+    // .BSE -> .BO (Bombay Stock Exchange)
+    const alphaVantageSymbol = sanitized
+      .replace(/\.NSE$/i, '.NS')
+      .replace(/\.BSE$/i, '.BO');
+    
+    console.log('Sanitized symbol:', sanitized, '-> Alpha Vantage format:', alphaVantageSymbol);
     
     // Check cache
     const cacheKey = `${alphaVantageSymbol}_quote`;
     const cached = cache.get(cacheKey);
-    if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
+    const now = Date.now();
+    if (cached && now - cached.timestamp < CACHE_TTL) {
       console.log('Returning cached data for:', alphaVantageSymbol);
       return new Response(JSON.stringify(cached.data), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
-    // Fetch real-time quote
-    const quoteUrl = `https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol=${alphaVantageSymbol}&apikey=${ALPHA_VANTAGE_API_KEY}`;
-    console.log('Fetching quote from Alpha Vantage for:', alphaVantageSymbol);
-    
-    const quoteResponse = await fetch(quoteUrl);
-    const quoteData = await quoteResponse.json();
+    let currentPrice = NaN;
+    let previousClose = NaN;
+    let change = NaN;
+    let changePercent = NaN;
+    let high = NaN;
+    let low = NaN;
+    let dataSource = '';
 
-    if (quoteData['Error Message'] || quoteData['Note']) {
-      console.error('Alpha Vantage error:', quoteData);
-      throw new Error(quoteData['Error Message'] || 'API rate limit reached. Please wait a moment.');
-    }
+    // Helper to check for rate limit
+    const isRateLimited = (data: any) => data && data.Note && data.Note.includes('API call frequency');
 
-    const quote = quoteData['Global Quote'];
-    // Proceed with fallbacks if quote is missing
-
-
-    // Fetch monthly historical data
-    const monthlyUrl = `https://www.alphavantage.co/query?function=TIME_SERIES_MONTHLY&symbol=${alphaVantageSymbol}&apikey=${ALPHA_VANTAGE_API_KEY}`;
-    console.log('Fetching monthly data from Alpha Vantage for:', alphaVantageSymbol);
-    
-    const monthlyResponse = await fetch(monthlyUrl);
-    const monthlyData = await monthlyResponse.json();
-
-    let historicalData: Array<{ month: string; value: number }> = [];
-    if (monthlyData['Monthly Time Series']) {
-      const timeSeries = monthlyData['Monthly Time Series'];
-      const dates = Object.keys(timeSeries).slice(0, 6).reverse(); // Last 6 months
+    // Try intraday 5min first for fresh price
+    try {
+      const intradayUrl = `https://www.alphavantage.co/query?function=TIME_SERIES_INTRADAY&symbol=${alphaVantageSymbol}&interval=5min&outputsize=compact&apikey=${ALPHA_VANTAGE_API_KEY}`;
+      console.log('Fetching intraday (5min) for:', alphaVantageSymbol);
+      const intradayResponse = await fetch(intradayUrl);
+      const intradayData = await intradayResponse.json();
       
-      historicalData = dates.map(date => ({
-        month: new Date(date).toLocaleDateString('en-US', { month: 'short' }),
-        value: parseFloat(timeSeries[date]['4. close'])
-      }));
-    }
-
-    let currentPrice = quote && quote['05. price'] ? parseFloat(quote['05. price']) : NaN;
-    let change = quote && quote['09. change'] ? parseFloat(quote['09. change']) : NaN;
-    let changePercent = quote && quote['10. change percent'] ? parseFloat(String(quote['10. change percent']).replace('%', '')) : NaN;
-    let previousClose = quote && quote['08. previous close'] ? parseFloat(quote['08. previous close']) : NaN;
-    let high = quote && quote['03. high'] ? parseFloat(quote['03. high']) : NaN;
-    let low = quote && quote['04. low'] ? parseFloat(quote['04. low']) : NaN;
-
-    if (Number.isNaN(currentPrice)) {
-      try {
-        // Try intraday 5min first for fresher price
-        const intradayUrl = `https://www.alphavantage.co/query?function=TIME_SERIES_INTRADAY&symbol=${alphaVantageSymbol}&interval=5min&outputsize=compact&apikey=${ALPHA_VANTAGE_API_KEY}`;
-        console.log('Falling back to intraday (5min) for:', alphaVantageSymbol);
-        const intradayResponse = await fetch(intradayUrl);
-        const intradayData = await intradayResponse.json();
+      if (isRateLimited(intradayData)) {
+        console.log('Rate limited on intraday, skipping...');
+      } else {
         const intradaySeries = intradayData['Time Series (5min)'];
         if (intradaySeries) {
           const times = Object.keys(intradaySeries).sort().reverse();
           const latest = intradaySeries[times[0]];
           const prev = intradaySeries[times[1]];
           currentPrice = parseFloat(latest['4. close']);
-          previousClose = prev ? parseFloat(prev['4. close']) : previousClose;
-          high = Math.max(
-            Number.isFinite(high) ? high : 0,
-            parseFloat(latest['2. high'])
-          );
-          low = Math.min(
-            Number.isFinite(low) ? low : parseFloat(latest['3. low']),
-            parseFloat(latest['3. low'])
-          );
+          previousClose = prev ? parseFloat(prev['4. close']) : currentPrice;
+          high = parseFloat(latest['2. high']);
+          low = parseFloat(latest['3. low']);
           if (!Number.isNaN(currentPrice) && !Number.isNaN(previousClose)) {
             change = currentPrice - previousClose;
-            changePercent = previousClose ? (change / previousClose) * 100 : changePercent;
+            changePercent = previousClose ? (change / previousClose) * 100 : 0;
+            dataSource = 'intraday';
+            console.log('Got valid price from intraday:', currentPrice);
           }
         }
-      } catch (e) {
-        console.error('Intraday fallback failed:', e);
       }
+    } catch (e) {
+      console.error('Intraday fetch failed:', e);
     }
 
     // If still missing, try daily adjusted
     if (Number.isNaN(currentPrice)) {
       try {
         const dailyUrl = `https://www.alphavantage.co/query?function=TIME_SERIES_DAILY_ADJUSTED&symbol=${alphaVantageSymbol}&apikey=${ALPHA_VANTAGE_API_KEY}`;
-        console.log('Falling back to daily data for:', alphaVantageSymbol);
+        console.log('Fetching daily adjusted for:', alphaVantageSymbol);
         const dailyResponse = await fetch(dailyUrl);
         const dailyData = await dailyResponse.json();
-        const series = dailyData['Time Series (Daily)'];
-        if (series) {
-          const days = Object.keys(series).sort().reverse();
-          const latest = series[days[0]];
-          const prev = series[days[1]];
-          currentPrice = parseFloat(latest['4. close']);
-          previousClose = prev ? parseFloat(prev['4. close']) : previousClose;
-          high = parseFloat(latest['2. high']);
-          low = parseFloat(latest['3. low']);
-          if (!Number.isNaN(currentPrice) && !Number.isNaN(previousClose)) {
-            change = currentPrice - previousClose;
-            changePercent = previousClose ? (change / previousClose) * 100 : changePercent;
+        
+        if (isRateLimited(dailyData)) {
+          console.log('Rate limited on daily, skipping...');
+        } else {
+          const dailySeries = dailyData['Time Series (Daily)'];
+          if (dailySeries) {
+            const dates = Object.keys(dailySeries).sort().reverse();
+            const latest = dailySeries[dates[0]];
+            const prev = dailySeries[dates[1]];
+            currentPrice = parseFloat(latest['4. close']);
+            previousClose = prev ? parseFloat(prev['4. close']) : currentPrice;
+            high = parseFloat(latest['2. high']);
+            low = parseFloat(latest['3. low']);
+            if (!Number.isNaN(currentPrice) && !Number.isNaN(previousClose)) {
+              change = currentPrice - previousClose;
+              changePercent = previousClose ? (change / previousClose) * 100 : 0;
+              dataSource = 'daily';
+              console.log('Got valid price from daily:', currentPrice);
+            }
           }
         }
       } catch (e) {
-        console.error('Daily fallback failed:', e);
+        console.error('Daily fetch failed:', e);
       }
     }
 
-    // Final fallback to monthly latest close if still missing
-    if (Number.isNaN(currentPrice) && monthlyData && monthlyData['Monthly Time Series']) {
-      const mSeries = monthlyData['Monthly Time Series'];
-      const mDates = Object.keys(mSeries).sort().reverse();
-      const mLatest = mSeries[mDates[0]];
-      if (mLatest) {
-        currentPrice = parseFloat(mLatest['4. close']);
-        previousClose = currentPrice;
-        change = 0;
-        changePercent = 0;
+    // Last resort: try global quote
+    if (Number.isNaN(currentPrice)) {
+      try {
+        const quoteUrl = `https://www.alphavantage.co/query?function=GLOBAL_QUOTE&symbol=${alphaVantageSymbol}&apikey=${ALPHA_VANTAGE_API_KEY}`;
+        console.log('Fetching global quote for:', alphaVantageSymbol);
+        const quoteResponse = await fetch(quoteUrl);
+        const quoteData = await quoteResponse.json();
+        
+        if (isRateLimited(quoteData)) {
+          console.log('Rate limited on global quote, skipping...');
+        } else {
+          const quote = quoteData['Global Quote'];
+          if (quote && quote['05. price']) {
+            currentPrice = parseFloat(quote['05. price']);
+            previousClose = quote['08. previous close'] ? parseFloat(quote['08. previous close']) : currentPrice;
+            change = quote['09. change'] ? parseFloat(quote['09. change']) : 0;
+            changePercent = quote['10. change percent'] ? parseFloat(quote['10. change percent'].replace('%', '')) : 0;
+            high = quote['03. high'] ? parseFloat(quote['03. high']) : currentPrice;
+            low = quote['04. low'] ? parseFloat(quote['04. low']) : currentPrice;
+            dataSource = 'quote';
+            console.log('Got valid price from global quote:', currentPrice);
+          }
+        }
+      } catch (e) {
+        console.error('Global quote fetch failed:', e);
       }
     }
 
-    // Normalize any NaN values to 0 to avoid runtime issues
-    currentPrice = Number.isFinite(currentPrice) ? currentPrice : 0;
-    previousClose = Number.isFinite(previousClose) ? previousClose : 0;
-    change = Number.isFinite(change) ? change : 0;
-    changePercent = Number.isFinite(changePercent) ? changePercent : 0;
-    high = Number.isFinite(high) ? high : 0;
-    low = Number.isFinite(low) ? low : 0;
+    // Fetch historical data for the chart (only if not cached and we have data source)
+    let historicalData = cached?.data?.historicalData || [];
+    
+    if (historicalData.length === 0 && dataSource) {
+      try {
+        const monthlyUrl = `https://www.alphavantage.co/query?function=TIME_SERIES_MONTHLY&symbol=${alphaVantageSymbol}&apikey=${ALPHA_VANTAGE_API_KEY}`;
+        const monthlyResponse = await fetch(monthlyUrl);
+        const monthlyData = await monthlyResponse.json();
+        
+        if (!isRateLimited(monthlyData)) {
+          const monthlySeries = monthlyData['Monthly Time Series'];
+          if (monthlySeries) {
+            const months = Object.keys(monthlySeries).sort().slice(-5); // Get last 5 months
+            for (const month of months) {
+              const data = monthlySeries[month];
+              historicalData.push({
+                month: new Date(month).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }),
+                value: parseFloat(data['4. close'])
+              });
+            }
+          }
+        }
+      } catch (e) {
+        console.error('Monthly fetch failed:', e);
+      }
+    }
 
-    // If we couldn't get a valid price, serve last cached result as stale to avoid 0.00 UI
-    if ((!currentPrice || currentPrice === 0) && cached) {
-      const stale = { ...cached.data, stale: true, lastUpdate: new Date().toISOString() };
-      console.log('Serving stale cached data for:', alphaVantageSymbol);
-      return new Response(JSON.stringify(stale), {
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+    // If we couldn't get a valid price, serve last cached result as stale or return 503
+    if (!currentPrice || currentPrice === 0 || Number.isNaN(currentPrice)) {
+      if (cached) {
+        const stale = { 
+          ...cached.data, 
+          stale: true, 
+          lastUpdate: cached.data.lastUpdate || new Date().toISOString() 
+        };
+        console.log('Serving stale cached data for:', alphaVantageSymbol);
+        return new Response(JSON.stringify(stale), {
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        });
+      } else {
+        console.log('No valid price and no cache for:', alphaVantageSymbol);
+        return new Response(
+          JSON.stringify({ error: 'Data temporarily unavailable due to provider rate limits. Please retry shortly.' }),
+          { status: 503, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        );
+      }
     }
 
     const result = {
-      symbol: symbol.replace(/\.(BSE|NSE)$/, ''),
-      name: symbol.replace(/\.(BSE|NSE)$/, '') + ' Limited',
+      symbol: sanitized.replace(/\.(BSE|NSE|NS|BO)$/i, ''),
+      name: sanitized.replace(/\.(BSE|NSE|NS|BO)$/i, '') + ' Limited',
       price: currentPrice.toFixed(2),
       change: change.toFixed(2),
       changePercent: changePercent.toFixed(2),
@@ -188,12 +211,17 @@ serve(async (req) => {
       previousClose: previousClose.toFixed(2),
       historicalData,
       lastUpdate: new Date().toISOString(),
+      source: dataSource,
+      stale: false
     };
 
-    // Cache the result
-    cache.set(cacheKey, { data: result, timestamp: Date.now() });
-    console.log('Successfully fetched and cached data for:', alphaVantageSymbol);
+    // Store in cache only if valid
+    cache.set(cacheKey, {
+      data: result,
+      timestamp: now
+    });
 
+    console.log('Returning fresh data from source:', dataSource);
     return new Response(JSON.stringify(result), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });

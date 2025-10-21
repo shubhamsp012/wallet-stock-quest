@@ -1,7 +1,8 @@
 import { useQuery } from "@tanstack/react-query";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ArrowUpIcon, ArrowDownIcon, Star, Loader2 } from "lucide-react";
+import { ArrowUpIcon, ArrowDownIcon, Star, Loader2, RefreshCw, AlertCircle } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { cn } from "@/lib/utils";
 import { useState } from "react";
 import { TradeModal } from "./TradeModal";
@@ -17,7 +18,7 @@ export const StockDetails = ({ symbol }: StockDetailsProps) => {
   const [tradeModalOpen, setTradeModalOpen] = useState(false);
   const [tradeType, setTradeType] = useState<"buy" | "sell">("buy");
 
-  const { data: stockData, isLoading, error } = useQuery({
+  const { data: stockData, isLoading, error, refetch } = useQuery({
     queryKey: ["stock", symbol],
     queryFn: async () => {
       const { data, error } = await supabase.functions.invoke('fetch-stock-data', {
@@ -28,6 +29,7 @@ export const StockDetails = ({ symbol }: StockDetailsProps) => {
       return data;
     },
     refetchInterval: 60000, // Auto-refresh every minute
+    retry: 2,
   });
 
   const { data: isWatchlisted, refetch: refetchWatchlist } = useQuery({
@@ -83,7 +85,24 @@ export const StockDetails = ({ symbol }: StockDetailsProps) => {
     );
   }
 
-  if (error || !stockData) {
+  if (error || (stockData && stockData.error)) {
+    return (
+      <Card>
+        <CardContent className="flex flex-col items-center justify-center h-64 gap-4">
+          <AlertCircle className="h-12 w-12 text-muted-foreground" />
+          <p className="text-muted-foreground text-center">
+            Data temporarily unavailable due to provider rate limits.
+          </p>
+          <Button onClick={() => refetch()} variant="outline" size="sm">
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Retry now
+          </Button>
+        </CardContent>
+      </Card>
+    );
+  }
+
+  if (!stockData) {
     return (
       <Card>
         <CardContent className="flex items-center justify-center h-64">
@@ -94,15 +113,37 @@ export const StockDetails = ({ symbol }: StockDetailsProps) => {
   }
 
   const isPositive = parseFloat(stockData.change) >= 0;
+  const price = parseFloat(stockData.price);
+  const isStale = stockData.stale === true;
+  const showPlaceholder = (val: string) => {
+    const num = parseFloat(val);
+    return (num === 0 || isNaN(num)) && !isStale;
+  };
 
   return (
     <>
       <Card>
         <CardHeader>
           <div className="flex items-start justify-between">
-            <div>
-              <CardTitle className="text-2xl">{stockData.symbol}</CardTitle>
+            <div className="flex-1">
+              <div className="flex items-center gap-2">
+                <CardTitle className="text-2xl">{stockData.symbol}</CardTitle>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  onClick={() => refetch()}
+                  className="h-8 w-8"
+                  title="Refresh data"
+                >
+                  <RefreshCw className="h-4 w-4" />
+                </Button>
+              </div>
               <p className="text-sm text-muted-foreground">{stockData.name}</p>
+              {stockData.lastUpdate && (
+                <p className="text-xs text-muted-foreground mt-1">
+                  Last updated: {new Date(stockData.lastUpdate).toLocaleTimeString()}
+                </p>
+              )}
             </div>
             <Button
               variant="ghost"
@@ -115,34 +156,53 @@ export const StockDetails = ({ symbol }: StockDetailsProps) => {
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
+          {isStale && (
+            <Alert variant="default" className="bg-muted/50">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription className="text-sm">
+                Live price temporarily unavailable. Showing last update.
+              </AlertDescription>
+            </Alert>
+          )}
+
           <div>
             <div className="flex items-baseline gap-2">
-              <span className="text-4xl font-bold">₹{stockData.price}</span>
-              <div className={cn("flex items-center gap-1", isPositive ? "text-profit" : "text-loss")}>
-                {isPositive ? (
-                  <ArrowUpIcon className="h-4 w-4" />
-                ) : (
-                  <ArrowDownIcon className="h-4 w-4" />
-                )}
-                <span className="text-sm font-medium">
-                  {stockData.change} ({stockData.changePercent}%)
-                </span>
-              </div>
+              <span className="text-4xl font-bold">
+                {showPlaceholder(stockData.price) ? '—' : `₹${stockData.price}`}
+              </span>
+              {!showPlaceholder(stockData.change) && (
+                <div className={cn("flex items-center gap-1", isPositive ? "text-profit" : "text-loss")}>
+                  {isPositive ? (
+                    <ArrowUpIcon className="h-4 w-4" />
+                  ) : (
+                    <ArrowDownIcon className="h-4 w-4" />
+                  )}
+                  <span className="text-sm font-medium">
+                    {stockData.change} ({stockData.changePercent}%)
+                  </span>
+                </div>
+              )}
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
               <p className="text-xs text-muted-foreground">High</p>
-              <p className="font-semibold">₹{stockData.high}</p>
+              <p className="font-semibold">
+                {showPlaceholder(stockData.high) ? '—' : `₹${stockData.high}`}
+              </p>
             </div>
             <div>
               <p className="text-xs text-muted-foreground">Low</p>
-              <p className="font-semibold">₹{stockData.low}</p>
+              <p className="font-semibold">
+                {showPlaceholder(stockData.low) ? '—' : `₹${stockData.low}`}
+              </p>
             </div>
             <div>
               <p className="text-xs text-muted-foreground">Prev. Close</p>
-              <p className="font-semibold">₹{stockData.previousClose}</p>
+              <p className="font-semibold">
+                {showPlaceholder(stockData.previousClose) ? '—' : `₹${stockData.previousClose}`}
+              </p>
             </div>
           </div>
 
@@ -183,6 +243,7 @@ export const StockDetails = ({ symbol }: StockDetailsProps) => {
                 setTradeType("buy");
                 setTradeModalOpen(true);
               }}
+              disabled={price === 0 || isNaN(price)}
             >
               Buy
             </Button>
@@ -193,6 +254,7 @@ export const StockDetails = ({ symbol }: StockDetailsProps) => {
                 setTradeType("sell");
                 setTradeModalOpen(true);
               }}
+              disabled={price === 0 || isNaN(price)}
             >
               Sell
             </Button>
