@@ -3,8 +3,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Star } from "lucide-react";
+import { Star, TrendingUp, TrendingDown } from "lucide-react";
 import { toast } from "sonner";
+import { getMockStockData } from "@/services/mockStockData";
+import { cn } from "@/lib/utils";
 
 export const Watchlist = ({ onSelectStock }: { onSelectStock: (symbol: string) => void }) => {
   const { data: watchlist, isLoading, refetch } = useQuery({
@@ -21,14 +23,19 @@ export const Watchlist = ({ onSelectStock }: { onSelectStock: (symbol: string) =
 
       if (error) throw error;
 
-      // Mock current prices for demo
-      return data.map((item) => ({
-        ...item,
-        currentPrice: (Math.random() * 3000 + 500).toFixed(2),
-        change: ((Math.random() - 0.5) * 100).toFixed(2),
-      }));
+      // Get current prices from mock data
+      return data.map((item) => {
+        const stockData = getMockStockData(item.stock_symbol);
+        return {
+          ...item,
+          currentPrice: stockData?.currentPrice || 0,
+          change: stockData?.change || 0,
+          changePercent: stockData?.changePercent || 0,
+        };
+      });
     },
-    refetchInterval: 5000,
+    staleTime: 0,
+    refetchInterval: 30000,
   });
 
   const removeFromWatchlist = async (id: string) => {
@@ -105,10 +112,17 @@ export const Watchlist = ({ onSelectStock }: { onSelectStock: (symbol: string) =
                   <p className="text-xs text-muted-foreground">{item.stock_name}</p>
                 </div>
                 <div className="text-right">
-                  <p className="font-semibold">₹{item.currentPrice}</p>
-                  <p className={`text-xs ${isPositive ? "text-profit" : "text-loss"}`}>
-                    {isPositive ? "+" : ""}₹{item.change}
-                  </p>
+                  <p className="font-semibold">₹{item.currentPrice.toFixed(2)}</p>
+                  <div className={cn("flex items-center gap-1 justify-end text-xs", isPositive ? "text-profit" : "text-loss")}>
+                    {isPositive ? (
+                      <TrendingUp className="h-3 w-3" />
+                    ) : (
+                      <TrendingDown className="h-3 w-3" />
+                    )}
+                    <span>
+                      {isPositive ? "+" : ""}{item.changePercent.toFixed(2)}%
+                    </span>
+                  </div>
                 </div>
               </div>
             </div>

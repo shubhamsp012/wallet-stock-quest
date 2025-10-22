@@ -9,6 +9,7 @@ import { TradeModal } from "./TradeModal";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { getMockStockData } from "@/services/mockStockData";
 
 interface StockDetailsProps {
   symbol: string;
@@ -17,20 +18,32 @@ interface StockDetailsProps {
 export const StockDetails = ({ symbol }: StockDetailsProps) => {
   const [tradeModalOpen, setTradeModalOpen] = useState(false);
   const [tradeType, setTradeType] = useState<"buy" | "sell">("buy");
-  const [fetchMode, setFetchMode] = useState<"full" | "quoteOnly">("full");
+  const [refreshKey, setRefreshKey] = useState(0);
 
   const { data: stockData, isLoading, error, refetch } = useQuery({
-    queryKey: ["stock", symbol, fetchMode],
+    queryKey: ["stock", symbol, refreshKey],
     queryFn: async () => {
-      const { data, error } = await supabase.functions.invoke('fetch-stock-data', {
-        body: { symbol, mode: fetchMode }
-      });
-
-      if (error) throw error;
-      return data;
+      const data = getMockStockData(symbol);
+      if (!data) throw new Error(`Stock ${symbol} not found`);
+      
+      // Transform to match expected format
+      return {
+        symbol: data.symbol,
+        name: data.name,
+        price: data.currentPrice.toString(),
+        change: data.change.toString(),
+        changePercent: data.changePercent.toString(),
+        high: data.high.toString(),
+        low: data.low.toString(),
+        previousClose: data.previousClose.toString(),
+        historicalData: data.historicalData.map(item => ({
+          month: item.date,
+          value: item.close,
+        })),
+      };
     },
-    refetchInterval: 60000, // Auto-refresh every minute
-    retry: 2,
+    staleTime: 0,
+    refetchInterval: 30000, // Auto-refresh every 30 seconds
   });
 
   const { data: isWatchlisted, refetch: refetchWatchlist } = useQuery({
@@ -86,18 +99,14 @@ export const StockDetails = ({ symbol }: StockDetailsProps) => {
     );
   }
 
-  if (error || (stockData && stockData.error)) {
+  if (error) {
     return (
       <Card>
         <CardContent className="flex flex-col items-center justify-center h-64 gap-4">
           <AlertCircle className="h-12 w-12 text-muted-foreground" />
           <p className="text-muted-foreground text-center">
-            Data temporarily unavailable due to provider rate limits.
+            Stock not found. Please try another symbol.
           </p>
-          <Button onClick={() => { setFetchMode('quoteOnly'); refetch(); }} variant="outline" size="sm">
-            <RefreshCw className="h-4 w-4 mr-2" />
-            Retry now
-          </Button>
         </CardContent>
       </Card>
     );
@@ -115,11 +124,6 @@ export const StockDetails = ({ symbol }: StockDetailsProps) => {
 
   const isPositive = parseFloat(stockData.change) >= 0;
   const price = parseFloat(stockData.price);
-  const isStale = stockData.stale === true;
-  const showPlaceholder = (val: string) => {
-    const num = parseFloat(val);
-    return (num === 0 || isNaN(num)) && !isStale;
-  };
 
   return (
     <>
@@ -132,7 +136,7 @@ export const StockDetails = ({ symbol }: StockDetailsProps) => {
                 <Button
                   variant="ghost"
                   size="icon"
-                  onClick={() => refetch()}
+                  onClick={() => setRefreshKey(k => k + 1)}
                   className="h-8 w-8"
                   title="Refresh data"
                 >
@@ -140,11 +144,6 @@ export const StockDetails = ({ symbol }: StockDetailsProps) => {
                 </Button>
               </div>
               <p className="text-sm text-muted-foreground">{stockData.name}</p>
-              {stockData.lastUpdate && (
-                <p className="text-xs text-muted-foreground mt-1">
-                  Last updated: {new Date(stockData.lastUpdate).toLocaleTimeString()}
-                </p>
-              )}
             </div>
             <Button
               variant="ghost"
@@ -157,59 +156,40 @@ export const StockDetails = ({ symbol }: StockDetailsProps) => {
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
-          {isStale && (
-            <Alert variant="default" className="bg-muted/50">
-              <AlertCircle className="h-4 w-4" />
-              <AlertDescription className="text-sm">
-                Live price temporarily unavailable. Showing last update.
-              </AlertDescription>
-            </Alert>
-          )}
-
           <div>
             <div className="flex items-baseline gap-2">
-              <span className="text-4xl font-bold">
-                {showPlaceholder(stockData.price) ? '—' : `₹${stockData.price}`}
-              </span>
-              {!showPlaceholder(stockData.change) && (
-                <div className={cn("flex items-center gap-1", isPositive ? "text-profit" : "text-loss")}>
-                  {isPositive ? (
-                    <ArrowUpIcon className="h-4 w-4" />
-                  ) : (
-                    <ArrowDownIcon className="h-4 w-4" />
-                  )}
-                  <span className="text-sm font-medium">
-                    {stockData.change} ({stockData.changePercent}%)
-                  </span>
-                </div>
-              )}
+              <span className="text-4xl font-bold">₹{stockData.price}</span>
+              <div className={cn("flex items-center gap-1", isPositive ? "text-profit" : "text-loss")}>
+                {isPositive ? (
+                  <ArrowUpIcon className="h-4 w-4" />
+                ) : (
+                  <ArrowDownIcon className="h-4 w-4" />
+                )}
+                <span className="text-sm font-medium">
+                  {isPositive ? "+" : ""}{stockData.change} ({isPositive ? "+" : ""}{stockData.changePercent}%)
+                </span>
+              </div>
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div>
               <p className="text-xs text-muted-foreground">High</p>
-              <p className="font-semibold">
-                {showPlaceholder(stockData.high) ? '—' : `₹${stockData.high}`}
-              </p>
+              <p className="font-semibold">₹{stockData.high}</p>
             </div>
             <div>
               <p className="text-xs text-muted-foreground">Low</p>
-              <p className="font-semibold">
-                {showPlaceholder(stockData.low) ? '—' : `₹${stockData.low}`}
-              </p>
+              <p className="font-semibold">₹{stockData.low}</p>
             </div>
             <div>
               <p className="text-xs text-muted-foreground">Prev. Close</p>
-              <p className="font-semibold">
-                {showPlaceholder(stockData.previousClose) ? '—' : `₹${stockData.previousClose}`}
-              </p>
+              <p className="font-semibold">₹{stockData.previousClose}</p>
             </div>
           </div>
 
           {stockData.historicalData && stockData.historicalData.length > 0 && (
             <div className="mt-6">
-              <h3 className="text-sm font-semibold mb-3">5-Month Performance</h3>
+              <h3 className="text-sm font-semibold mb-3">12-Month Performance</h3>
               <div className="h-64">
                 <ResponsiveContainer width="100%" height="100%">
                   <LineChart data={stockData.historicalData}>

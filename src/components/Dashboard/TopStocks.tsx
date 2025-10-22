@@ -3,37 +3,30 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { TrendingUp, TrendingDown } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { supabase } from "@/integrations/supabase/client";
+import { getMockStocksData } from "@/services/mockStockData";
 
 interface TopStocksProps {
   onSelectStock: (symbol: string) => void;
 }
 
 export const TopStocks = ({ onSelectStock }: TopStocksProps) => {
-  const topStockSymbols = ["TCS", "RELIANCE", "INFY", "HDFCBANK"];
+  const topStockSymbols = ["TCS.NS", "RELIANCE.NS", "INFY.NS", "HDFCBANK.NS"];
 
   const { data: stocks, isLoading } = useQuery({
     queryKey: ["top-stocks"],
     queryFn: async () => {
-      const stocksData = await Promise.all(
-        topStockSymbols.map(async (symbol) => {
-          try {
-            const { data, error } = await supabase.functions.invoke('fetch-stock-data', {
-              body: { symbol: `${symbol}.NSE`, mode: 'quoteOnly' }
-            });
-
-            if (error) throw error;
-            return data;
-          } catch (error) {
-            console.error(`Error fetching ${symbol}:`, error);
-            return null;
-          }
-        })
-      );
-
-      return stocksData.filter(Boolean);
+      const stocksData = getMockStocksData(topStockSymbols);
+      return stocksData.map(stock => ({
+        symbol: stock.symbol.replace('.NS', ''),
+        name: stock.name,
+        price: stock.currentPrice.toFixed(2),
+        change: stock.change.toFixed(2),
+        changePercent: stock.changePercent.toFixed(2),
+        previousClose: stock.previousClose.toFixed(2),
+      }));
     },
-    refetchInterval: 60000, // Refresh every minute
+    staleTime: 0,
+    refetchInterval: 30000, // Refresh every 30 seconds
   });
 
   if (isLoading) {
@@ -65,7 +58,7 @@ export const TopStocks = ({ onSelectStock }: TopStocksProps) => {
             return (
               <div
                 key={stock.symbol}
-                onClick={() => onSelectStock(`${stock.symbol}.NSE`)}
+                onClick={() => onSelectStock(`${stock.symbol}.NS`)}
                 className="p-4 rounded-lg border border-border hover:bg-accent/50 transition-colors cursor-pointer"
               >
                 <div className="flex items-start justify-between mb-2">

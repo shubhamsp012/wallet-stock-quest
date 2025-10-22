@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { TrendingUp, TrendingDown } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { getMockStockData } from "@/services/mockStockData";
 
 export const Portfolio = () => {
   const { data: portfolio, isLoading } = useQuery({
@@ -19,33 +20,19 @@ export const Portfolio = () => {
 
       if (error) throw error;
 
-      // Fetch current prices from Alpha Vantage
-      const portfolioWithPrices = await Promise.all(
-        data.map(async (item) => {
-          try {
-            const { data: stockData, error: stockError } = await supabase.functions.invoke('fetch-stock-data', {
-              body: { symbol: item.stock_symbol, mode: 'quoteOnly' }
-            });
-
-            if (stockError) throw stockError;
-
-            return {
-              ...item,
-              currentPrice: parseFloat(stockData.price),
-            };
-          } catch (error) {
-            console.error(`Error fetching price for ${item.stock_symbol}:`, error);
-            return {
-              ...item,
-              currentPrice: parseFloat(item.average_buy_price),
-            };
-          }
-        })
-      );
+      // Fetch current prices from mock data
+      const portfolioWithPrices = data.map((item) => {
+        const stockData = getMockStockData(item.stock_symbol);
+        return {
+          ...item,
+          currentPrice: stockData?.currentPrice || parseFloat(item.average_buy_price),
+        };
+      });
 
       return portfolioWithPrices;
     },
-    refetchInterval: 60000, // Refresh every minute
+    staleTime: 0,
+    refetchInterval: 30000, // Refresh every 30 seconds
   });
 
   if (isLoading) {
