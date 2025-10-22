@@ -24,7 +24,7 @@ export const Portfolio = () => {
         data.map(async (item) => {
           try {
             const { data: stockData, error: stockError } = await supabase.functions.invoke('fetch-stock-data', {
-              body: { symbol: item.stock_symbol }
+              body: { symbol: item.stock_symbol, mode: 'quoteOnly' }
             });
 
             if (stockError) throw stockError;

@@ -18,11 +18,14 @@ serve(async (req) => {
   }
 
   try {
-    const { symbol } = await req.json();
+    const { symbol, mode, includeHistory } = await req.json();
     
     if (!symbol) {
       throw new Error('Symbol is required');
     }
+
+    const quoteOnly = String(mode || '').toLowerCase() === 'quoteonly';
+    const wantHistory = includeHistory === false ? false : true;
 
     console.log('Fetching data for symbol:', symbol);
 
@@ -61,38 +64,40 @@ serve(async (req) => {
     const isRateLimited = (data: any) => data && data.Note && data.Note.includes('API call frequency');
 
     // Try intraday 5min first for fresh price
-    try {
-      const intradayUrl = `https://www.alphavantage.co/query?function=TIME_SERIES_INTRADAY&symbol=${alphaVantageSymbol}&interval=5min&outputsize=compact&apikey=${ALPHA_VANTAGE_API_KEY}`;
-      console.log('Fetching intraday (5min) for:', alphaVantageSymbol);
-      const intradayResponse = await fetch(intradayUrl);
-      const intradayData = await intradayResponse.json();
-      
-      if (isRateLimited(intradayData)) {
-        console.log('Rate limited on intraday, skipping...');
-      } else {
-        const intradaySeries = intradayData['Time Series (5min)'];
-        if (intradaySeries) {
-          const times = Object.keys(intradaySeries).sort().reverse();
-          const latest = intradaySeries[times[0]];
-          const prev = intradaySeries[times[1]];
-          currentPrice = parseFloat(latest['4. close']);
-          previousClose = prev ? parseFloat(prev['4. close']) : currentPrice;
-          high = parseFloat(latest['2. high']);
-          low = parseFloat(latest['3. low']);
-          if (!Number.isNaN(currentPrice) && !Number.isNaN(previousClose)) {
-            change = currentPrice - previousClose;
-            changePercent = previousClose ? (change / previousClose) * 100 : 0;
-            dataSource = 'intraday';
-            console.log('Got valid price from intraday:', currentPrice);
+    if (!quoteOnly) {
+      try {
+        const intradayUrl = `https://www.alphavantage.co/query?function=TIME_SERIES_INTRADAY&symbol=${alphaVantageSymbol}&interval=5min&outputsize=compact&apikey=${ALPHA_VANTAGE_API_KEY}`;
+        console.log('Fetching intraday (5min) for:', alphaVantageSymbol);
+        const intradayResponse = await fetch(intradayUrl);
+        const intradayData = await intradayResponse.json();
+        
+        if (isRateLimited(intradayData)) {
+          console.log('Rate limited on intraday, skipping...');
+        } else {
+          const intradaySeries = intradayData['Time Series (5min)'];
+          if (intradaySeries) {
+            const times = Object.keys(intradaySeries).sort().reverse();
+            const latest = intradaySeries[times[0]];
+            const prev = intradaySeries[times[1]];
+            currentPrice = parseFloat(latest['4. close']);
+            previousClose = prev ? parseFloat(prev['4. close']) : currentPrice;
+            high = parseFloat(latest['2. high']);
+            low = parseFloat(latest['3. low']);
+            if (!Number.isNaN(currentPrice) && !Number.isNaN(previousClose)) {
+              change = currentPrice - previousClose;
+              changePercent = previousClose ? (change / previousClose) * 100 : 0;
+              dataSource = 'intraday';
+              console.log('Got valid price from intraday:', currentPrice);
+            }
           }
         }
+      } catch (e) {
+        console.error('Intraday fetch failed:', e);
       }
-    } catch (e) {
-      console.error('Intraday fetch failed:', e);
     }
 
     // If still missing, try daily adjusted
-    if (Number.isNaN(currentPrice)) {
+    if (Number.isNaN(currentPrice) && !quoteOnly) {
       try {
         const dailyUrl = `https://www.alphavantage.co/query?function=TIME_SERIES_DAILY_ADJUSTED&symbol=${alphaVantageSymbol}&apikey=${ALPHA_VANTAGE_API_KEY}`;
         console.log('Fetching daily adjusted for:', alphaVantageSymbol);
@@ -155,7 +160,7 @@ serve(async (req) => {
     // Fetch historical data for the chart (only if not cached and we have data source)
     let historicalData = cached?.data?.historicalData || [];
     
-    if (historicalData.length === 0 && dataSource) {
+    if (wantHistory && historicalData.length === 0 && dataSource) {
       try {
         const monthlyUrl = `https://www.alphavantage.co/query?function=TIME_SERIES_MONTHLY&symbol=${alphaVantageSymbol}&apikey=${ALPHA_VANTAGE_API_KEY}`;
         const monthlyResponse = await fetch(monthlyUrl);

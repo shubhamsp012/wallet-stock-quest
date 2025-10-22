@@ -17,12 +17,13 @@ interface StockDetailsProps {
 export const StockDetails = ({ symbol }: StockDetailsProps) => {
   const [tradeModalOpen, setTradeModalOpen] = useState(false);
   const [tradeType, setTradeType] = useState<"buy" | "sell">("buy");
+  const [fetchMode, setFetchMode] = useState<"full" | "quoteOnly">("full");
 
   const { data: stockData, isLoading, error, refetch } = useQuery({
-    queryKey: ["stock", symbol],
+    queryKey: ["stock", symbol, fetchMode],
     queryFn: async () => {
       const { data, error } = await supabase.functions.invoke('fetch-stock-data', {
-        body: { symbol }
+        body: { symbol, mode: fetchMode }
       });
 
       if (error) throw error;
@@ -93,7 +94,7 @@ export const StockDetails = ({ symbol }: StockDetailsProps) => {
           <p className="text-muted-foreground text-center">
             Data temporarily unavailable due to provider rate limits.
           </p>
-          <Button onClick={() => refetch()} variant="outline" size="sm">
+          <Button onClick={() => { setFetchMode('quoteOnly'); refetch(); }} variant="outline" size="sm">
             <RefreshCw className="h-4 w-4 mr-2" />
             Retry now
           </Button>

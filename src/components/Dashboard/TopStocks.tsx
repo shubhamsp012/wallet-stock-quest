@@ -19,7 +19,7 @@ export const TopStocks = ({ onSelectStock }: TopStocksProps) => {
         topStockSymbols.map(async (symbol) => {
           try {
             const { data, error } = await supabase.functions.invoke('fetch-stock-data', {
-              body: { symbol: `${symbol}.NSE` }
+              body: { symbol: `${symbol}.NSE`, mode: 'quoteOnly' }
             });
 
             if (error) throw error;
