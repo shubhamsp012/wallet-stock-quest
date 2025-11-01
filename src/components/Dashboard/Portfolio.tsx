@@ -75,6 +75,31 @@ export const Portfolio = () => {
     );
   }
 
+  // Calculate totals
+  const totals = portfolio.reduce(
+    (acc, item) => {
+      const totalValue = item.currentPrice * item.quantity;
+      const totalCost = parseFloat(item.average_buy_price) * item.quantity;
+      const profitLoss = totalValue - totalCost;
+      
+      if (profitLoss >= 0) {
+        acc.totalProfit += profitLoss;
+      } else {
+        acc.totalLoss += Math.abs(profitLoss);
+      }
+      acc.totalInvestment += totalCost;
+      acc.totalCurrentValue += totalValue;
+      
+      return acc;
+    },
+    { totalProfit: 0, totalLoss: 0, totalInvestment: 0, totalCurrentValue: 0 }
+  );
+
+  const netProfitLoss = totals.totalProfit - totals.totalLoss;
+  const netProfitLossPercent = totals.totalInvestment > 0 
+    ? (netProfitLoss / totals.totalInvestment) * 100 
+    : 0;
+
   return (
     <Card>
       <CardHeader>
@@ -110,7 +135,7 @@ export const Portfolio = () => {
                 </div>
               </div>
 
-              <div className="grid grid-cols-3 gap-2 text-sm">
+              <div className="grid grid-cols-4 gap-2 text-sm">
                 <div>
                   <p className="text-xs text-muted-foreground">Qty</p>
                   <p className="font-medium">{item.quantity}</p>
@@ -122,6 +147,12 @@ export const Portfolio = () => {
                 <div>
                   <p className="text-xs text-muted-foreground">Current</p>
                   <p className="font-medium">₹{item.currentPrice.toFixed(2)}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">P/L per share</p>
+                  <p className={cn("font-medium", isProfit ? "text-profit" : "text-loss")}>
+                    {isProfit ? "+" : ""}₹{((item.currentPrice - parseFloat(item.average_buy_price))).toFixed(2)}
+                  </p>
                 </div>
               </div>
 
@@ -149,6 +180,49 @@ export const Portfolio = () => {
             </div>
           );
         })}
+
+        {/* Summary Section */}
+        <div className="mt-6 pt-4 border-t-2 border-border space-y-3">
+          <h3 className="font-semibold text-lg mb-3">Portfolio Summary</h3>
+          
+          <div className="grid grid-cols-2 gap-4">
+            <div className="p-3 rounded-lg bg-profit/10 border border-profit/20">
+              <p className="text-xs text-muted-foreground mb-1">Total Profit</p>
+              <p className="text-xl font-bold text-profit">
+                +₹{totals.totalProfit.toFixed(2)}
+              </p>
+            </div>
+            
+            <div className="p-3 rounded-lg bg-loss/10 border border-loss/20">
+              <p className="text-xs text-muted-foreground mb-1">Total Loss</p>
+              <p className="text-xl font-bold text-loss">
+                -₹{totals.totalLoss.toFixed(2)}
+              </p>
+            </div>
+          </div>
+
+          <div className="p-4 rounded-lg bg-accent/50 border border-border">
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm text-muted-foreground">Total Investment</span>
+              <span className="font-semibold">₹{totals.totalInvestment.toFixed(2)}</span>
+            </div>
+            <div className="flex items-center justify-between mb-2">
+              <span className="text-sm text-muted-foreground">Current Value</span>
+              <span className="font-semibold">₹{totals.totalCurrentValue.toFixed(2)}</span>
+            </div>
+            <div className="flex items-center justify-between pt-2 border-t border-border">
+              <span className="font-semibold">Net P/L</span>
+              <div className="text-right">
+                <p className={cn("text-lg font-bold", netProfitLoss >= 0 ? "text-profit" : "text-loss")}>
+                  {netProfitLoss >= 0 ? "+" : ""}₹{netProfitLoss.toFixed(2)}
+                </p>
+                <p className={cn("text-sm", netProfitLoss >= 0 ? "text-profit" : "text-loss")}>
+                  ({netProfitLoss >= 0 ? "+" : ""}{netProfitLossPercent.toFixed(2)}%)
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
       </CardContent>
       {selectedStock && (
         <TradeModal
