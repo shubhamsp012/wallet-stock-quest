@@ -35,7 +35,7 @@ export const Watchlist = ({ onSelectStock }: { onSelectStock: (symbol: string) =
       });
     },
     staleTime: 0,
-    refetchInterval: 30000,
+    refetchInterval: 45000, // Refresh every 45 seconds
   });
 
   const removeFromWatchlist = async (id: string) => {

@@ -43,7 +43,7 @@ export const StockDetails = ({ symbol }: StockDetailsProps) => {
       };
     },
     staleTime: 0,
-    refetchInterval: 30000, // Auto-refresh every 30 seconds
+    refetchInterval: 45000, // Auto-refresh every 45 seconds
   });
 
   const { data: isWatchlisted, refetch: refetchWatchlist } = useQuery({

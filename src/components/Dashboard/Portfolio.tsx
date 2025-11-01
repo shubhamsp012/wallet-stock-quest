@@ -1,12 +1,22 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { TrendingUp, TrendingDown } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { getMockStockData } from "@/services/mockStockData";
+import { useState } from "react";
+import { TradeModal } from "./TradeModal";
 
 export const Portfolio = () => {
+  const [tradeModalOpen, setTradeModalOpen] = useState(false);
+  const [selectedStock, setSelectedStock] = useState<{
+    symbol: string;
+    name: string;
+    price: number;
+  } | null>(null);
+
   const { data: portfolio, isLoading } = useQuery({
     queryKey: ["portfolio"],
     queryFn: async () => {
@@ -32,7 +42,7 @@ export const Portfolio = () => {
       return portfolioWithPrices;
     },
     staleTime: 0,
-    refetchInterval: 30000, // Refresh every 30 seconds
+    refetchInterval: 45000, // Refresh every 45 seconds
   });
 
   if (isLoading) {
@@ -115,14 +125,41 @@ export const Portfolio = () => {
                 </div>
               </div>
 
-              <div className="mt-2 pt-2 border-t border-border flex justify-between text-sm">
-                <span className="text-muted-foreground">Total Value</span>
-                <span className="font-semibold">₹{totalValue.toFixed(2)}</span>
+              <div className="mt-2 pt-2 border-t border-border flex justify-between items-center text-sm">
+                <div>
+                  <span className="text-muted-foreground">Total Value</span>
+                  <span className="font-semibold ml-2">₹{totalValue.toFixed(2)}</span>
+                </div>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setSelectedStock({
+                      symbol: item.stock_symbol,
+                      name: item.stock_name,
+                      price: item.currentPrice,
+                    });
+                    setTradeModalOpen(true);
+                  }}
+                >
+                  Sell
+                </Button>
               </div>
             </div>
           );
         })}
       </CardContent>
+      {selectedStock && (
+        <TradeModal
+          open={tradeModalOpen}
+          onOpenChange={setTradeModalOpen}
+          stockSymbol={selectedStock.symbol}
+          stockName={selectedStock.name}
+          currentPrice={selectedStock.price}
+          tradeType="sell"
+        />
+      )}
     </Card>
   );
 };
