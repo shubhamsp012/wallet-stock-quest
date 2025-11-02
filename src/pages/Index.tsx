@@ -8,7 +8,10 @@ import { StockDetails } from "@/components/Dashboard/StockDetails";
 import { Portfolio } from "@/components/Dashboard/Portfolio";
 import { Watchlist } from "@/components/Dashboard/Watchlist";
 import { NewsSection } from "@/components/Dashboard/NewsSection";
+import { PriceAlerts } from "@/components/Dashboard/PriceAlerts";
+import { PortfolioAnalytics } from "@/components/Dashboard/PortfolioAnalytics";
 import { Loader2 } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const Index = () => {
   const { user, loading } = useAuth();
@@ -43,12 +46,25 @@ const Index = () => {
             <WalletCard />
             <StockSearch onSelectStock={setSelectedStock} />
             {selectedStock && <StockDetails symbol={selectedStock} />}
-            <Portfolio />
+            
+            <Tabs defaultValue="portfolio" className="w-full">
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="portfolio">Portfolio</TabsTrigger>
+                <TabsTrigger value="analytics">Analytics</TabsTrigger>
+              </TabsList>
+              <TabsContent value="portfolio" className="mt-6">
+                <Portfolio />
+              </TabsContent>
+              <TabsContent value="analytics" className="mt-6">
+                <PortfolioAnalytics />
+              </TabsContent>
+            </Tabs>
           </div>
 
           {/* Right Column */}
           <div className="space-y-6">
             <Watchlist onSelectStock={setSelectedStock} />
+            <PriceAlerts />
             <NewsSection />
           </div>
         </div>

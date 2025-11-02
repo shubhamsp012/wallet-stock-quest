@@ -85,7 +85,7 @@ export const Watchlist = ({ onSelectStock }: { onSelectStock: (symbol: string) =
       </CardHeader>
       <CardContent className="space-y-2">
         {watchlist.map((item) => {
-          const isPositive = parseFloat(item.change) >= 0;
+          const isPositive = Number(item.change) >= 0;
 
           return (
             <div

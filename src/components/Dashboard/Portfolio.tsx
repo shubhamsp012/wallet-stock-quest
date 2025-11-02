@@ -35,7 +35,7 @@ export const Portfolio = () => {
         const stockData = getMockStockData(item.stock_symbol);
         return {
           ...item,
-          currentPrice: stockData?.currentPrice || parseFloat(item.average_buy_price),
+          currentPrice: stockData?.currentPrice || item.average_buy_price,
         };
       });
 
@@ -79,7 +79,7 @@ export const Portfolio = () => {
   const totals = portfolio.reduce(
     (acc, item) => {
       const totalValue = item.currentPrice * item.quantity;
-      const totalCost = parseFloat(item.average_buy_price) * item.quantity;
+      const totalCost = item.average_buy_price * item.quantity;
       const profitLoss = totalValue - totalCost;
       
       if (profitLoss >= 0) {
@@ -108,7 +108,7 @@ export const Portfolio = () => {
       <CardContent className="space-y-3">
         {portfolio.map((item) => {
           const totalValue = item.currentPrice * item.quantity;
-          const totalCost = parseFloat(item.average_buy_price) * item.quantity;
+          const totalCost = item.average_buy_price * item.quantity;
           const profitLoss = totalValue - totalCost;
           const profitLossPercent = (profitLoss / totalCost) * 100;
           const isProfit = profitLoss >= 0;
@@ -142,7 +142,7 @@ export const Portfolio = () => {
                 </div>
                 <div>
                   <p className="text-xs text-muted-foreground">Avg Price</p>
-                  <p className="font-medium">₹{parseFloat(item.average_buy_price).toFixed(2)}</p>
+                  <p className="font-medium">₹{item.average_buy_price.toFixed(2)}</p>
                 </div>
                 <div>
                   <p className="text-xs text-muted-foreground">Current</p>
@@ -151,7 +151,7 @@ export const Portfolio = () => {
                 <div>
                   <p className="text-xs text-muted-foreground">P/L per share</p>
                   <p className={cn("font-medium", isProfit ? "text-profit" : "text-loss")}>
-                    {isProfit ? "+" : ""}₹{((item.currentPrice - parseFloat(item.average_buy_price))).toFixed(2)}
+                    {isProfit ? "+" : ""}₹{((item.currentPrice - item.average_buy_price)).toFixed(2)}
                   </p>
                 </div>
               </div>
