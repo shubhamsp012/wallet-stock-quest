@@ -24,7 +24,7 @@ export const WalletCard = () => {
 
   if (isLoading) {
     return (
-      <Card>
+      <Card className="shadow-lg animate-pulse">
         <CardHeader className="flex flex-row items-center justify-between pb-2">
           <CardTitle className="text-sm font-medium">Wallet Balance</CardTitle>
           <Wallet className="h-4 w-4 text-muted-foreground" />
@@ -37,13 +37,17 @@ export const WalletCard = () => {
   }
 
   return (
-    <Card>
+    <Card className="shadow-lg hover:shadow-glow transition-all border-primary/20 animate-fade-in">
       <CardHeader className="flex flex-row items-center justify-between pb-2">
-        <CardTitle className="text-sm font-medium">Wallet Balance</CardTitle>
-        <Wallet className="h-4 w-4 text-muted-foreground" />
+        <CardTitle className="text-sm font-medium flex items-center gap-2">
+          <div className="p-1.5 bg-gradient-primary rounded-lg shadow-glow">
+            <Wallet className="h-4 w-4 text-white" />
+          </div>
+          <span className="bg-gradient-primary bg-clip-text text-transparent">Wallet Balance</span>
+        </CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="text-2xl font-bold">
+        <div className="text-3xl font-bold bg-gradient-primary bg-clip-text text-transparent">
           ₹{profile?.wallet_balance?.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
         </div>
         <p className="text-xs text-muted-foreground mt-1">Available for trading</p>
