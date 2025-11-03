@@ -41,9 +41,18 @@ const baseStocks = [
   { symbol: "KOTAKBANK.NS", name: "Kotak Mahindra Bank", basePrice: 1880, sector: "Banking" },
 ];
 
-// Generate a random variance for price changes
-const getRandomVariance = (baseValue: number, maxPercent: number = 2) => {
-  const variance = (Math.random() - 0.5) * 2 * maxPercent / 100;
+// Get seeded random for consistent prices across 45-second windows
+const getSeededRandom = (symbol: string, index: number) => {
+  const timeWindow = Math.floor(Date.now() / 45000); // 45-second windows
+  const seed = symbol.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0) + timeWindow + index;
+  const x = Math.sin(seed) * 10000;
+  return x - Math.floor(x);
+};
+
+// Generate a random variance for price changes using seeded random
+const getRandomVariance = (symbol: string, baseValue: number, index: number, maxPercent: number = 2) => {
+  const random = getSeededRandom(symbol, index);
+  const variance = (random - 0.5) * 2 * maxPercent / 100;
   return baseValue * (1 + variance);
 };
 
@@ -81,15 +90,15 @@ export const getMockStockData = (symbol: string): StockData | null => {
   
   if (!stock) return null;
   
-  // Generate current price with random variance
-  const currentPrice = getRandomVariance(stock.basePrice, 2);
-  const previousClose = getRandomVariance(stock.basePrice, 1.5);
+  // Generate current price with seeded random variance for consistency
+  const currentPrice = getRandomVariance(symbol, stock.basePrice, 0, 2);
+  const previousClose = getRandomVariance(symbol, stock.basePrice, 1, 1.5);
   const change = currentPrice - previousClose;
   const changePercent = (change / previousClose) * 100;
   
   // Generate high/low for the day
-  const high = Math.max(currentPrice, previousClose) * getRandomVariance(1, 0.5);
-  const low = Math.min(currentPrice, previousClose) * getRandomVariance(1, -0.5);
+  const high = Math.max(currentPrice, previousClose) * getRandomVariance(symbol, 1, 2, 0.5);
+  const low = Math.min(currentPrice, previousClose) * getRandomVariance(symbol, 1, 3, -0.5);
   
   return {
     symbol: stock.symbol,

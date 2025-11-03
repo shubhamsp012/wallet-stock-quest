@@ -60,6 +60,8 @@ export const PortfolioAnalytics = () => {
       };
     },
     enabled: !!user?.id,
+    staleTime: 0,
+    refetchInterval: 45000, // Refresh every 45 seconds
   });
 
   if (isLoading) {
@@ -87,9 +89,9 @@ export const PortfolioAnalytics = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">${analytics.totalValue.toFixed(2)}</div>
+            <div className="text-2xl font-bold">₹{analytics.totalValue.toFixed(2)}</div>
             <p className="text-xs text-muted-foreground mt-1">
-              Cost: ${analytics.totalCost.toFixed(2)}
+              Cost: ₹{analytics.totalCost.toFixed(2)}
             </p>
           </CardContent>
         </Card>
@@ -107,7 +109,7 @@ export const PortfolioAnalytics = () => {
                 analytics.totalProfitLoss >= 0 ? "text-profit" : "text-loss"
               }`}
             >
-              ${Math.abs(analytics.totalProfitLoss).toFixed(2)}
+              ₹{Math.abs(analytics.totalProfitLoss).toFixed(2)}
             </div>
             <p className="text-xs text-muted-foreground mt-1">
               {analytics.profitLossPercent >= 0 ? "+" : ""}
@@ -148,14 +150,14 @@ export const PortfolioAnalytics = () => {
                 cx="50%"
                 cy="50%"
                 outerRadius={100}
-                label={(entry) => `${entry.symbol}: $${entry.value.toFixed(0)}`}
+                label={(entry) => `${entry.symbol}: ₹${entry.value.toFixed(0)}`}
               >
                 {analytics.distribution.map((_, index) => (
                   <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                 ))}
               </Pie>
               <Tooltip
-                formatter={(value: number) => `$${value.toFixed(2)}`}
+                formatter={(value: number) => `₹${value.toFixed(2)}`}
                 contentStyle={{
                   backgroundColor: "hsl(var(--card))",
                   border: "1px solid hsl(var(--border))",
@@ -196,7 +198,7 @@ export const PortfolioAnalytics = () => {
                       stock.profitLoss >= 0 ? "text-profit" : "text-loss"
                     }`}
                   >
-                    {stock.profitLoss >= 0 ? "+" : ""}${stock.profitLoss.toFixed(2)}
+                    {stock.profitLoss >= 0 ? "+" : ""}₹{stock.profitLoss.toFixed(2)}
                   </div>
                   <div className="text-xs text-muted-foreground">
                     {((stock.profitLoss / stock.cost) * 100).toFixed(2)}%
