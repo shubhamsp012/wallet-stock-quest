@@ -28,7 +28,7 @@ export const Header = () => {
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
               </svg>
             </div>
-            <h1 className="text-xl font-bold bg-gradient-primary bg-clip-text text-transparent">Stock Trader</h1>
+            <h1 className="text-xl font-bold bg-gradient-primary bg-clip-text text-transparent">Fingrow</h1>
           </div>
 
           <nav className="hidden md:flex items-center gap-2">
