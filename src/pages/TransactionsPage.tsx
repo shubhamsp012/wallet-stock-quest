@@ -80,12 +80,12 @@ const TransactionsPage = () => {
                     <div className="flex items-center gap-4">
                       <div
                         className={`p-2 rounded-full ${
-                          transaction.transaction_type === "buy"
+                          transaction.transaction_type === "BUY"
                             ? "bg-success/10"
                             : "bg-destructive/10"
                         }`}
                       >
-                        {transaction.transaction_type === "buy" ? (
+                        {transaction.transaction_type === "BUY" ? (
                           <TrendingUp className="h-5 w-5 text-success" />
                         ) : (
                           <TrendingDown className="h-5 w-5 text-destructive" />
@@ -103,10 +103,10 @@ const TransactionsPage = () => {
 
                 <div className="text-right">
                   <Badge
-                    variant={transaction.transaction_type === "buy" ? "default" : "secondary"}
+                    variant={transaction.transaction_type === "BUY" ? "default" : "secondary"}
                     className="mb-2"
                   >
-                    {transaction.transaction_type.toUpperCase()}
+                    {transaction.transaction_type}
                   </Badge>
                   <div className="text-sm text-muted-foreground">
                     {transaction.quantity} shares @ ${transaction.price_per_share.toFixed(2)}
