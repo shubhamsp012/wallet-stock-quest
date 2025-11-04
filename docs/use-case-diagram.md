@@ -1,10 +1,10 @@
 # Use Case Diagram
 
-This diagram shows the various use cases and actors in the Stock Trading Application.
+This diagram shows the various use cases and actors in the Fingrow platform.
 
 ```mermaid
 graph TB
-    subgraph "Stock Trading Application"
+    subgraph "Fingrow - Stock Trading Platform"
         UC1[Login/Register]
         UC2[View Dashboard]
         UC3[Search Stocks]
@@ -73,4 +73,4 @@ graph TB
 - **UC14: Track Profit/Loss** - User monitors gains and losses
 
 ### System Use Cases
-- **UC15: Real-time Price Updates** - System automatically updates stock prices every 45 seconds
+- **UC15: Real-time Price Updates** - System automatically updates stock prices every 30 seconds

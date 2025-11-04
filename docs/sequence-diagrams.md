@@ -64,13 +64,13 @@ sequenceDiagram
     participant MockDataService
     participant Timer
     
-    Component->>ReactQuery: useQuery with 45s refetchInterval
+    Component->>ReactQuery: useQuery with 30s refetchInterval
     ReactQuery->>MockDataService: Fetch stock data
     MockDataService->>MockDataService: Generate random prices
     MockDataService-->>ReactQuery: Return stock data
     ReactQuery-->>Component: Display data
     
-    loop Every 45 seconds
+    loop Every 30 seconds
         Timer->>ReactQuery: Trigger refetch
         ReactQuery->>MockDataService: Fetch updated stock data
         MockDataService->>MockDataService: Generate new random prices

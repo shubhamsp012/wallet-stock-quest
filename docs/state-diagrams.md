@@ -108,7 +108,7 @@ stateDiagram-v2
     Calculating --> Displaying: All calculations done
     
     Displaying --> WaitingForUpdate: Display complete
-    WaitingForUpdate --> FetchingPrices: 45s timer expires
+    WaitingForUpdate --> FetchingPrices: 30s timer expires
     
     FetchingPrices --> UpdatingPrices: New prices received
     UpdatingPrices --> Calculating: Prices updated
@@ -136,7 +136,7 @@ stateDiagram-v2
     
     Empty --> PopulatedWatchlist: Stock added
     
-    PopulatedWatchlist --> RefreshingPrices: 45s interval
+    PopulatedWatchlist --> RefreshingPrices: 30s interval
     RefreshingPrices --> PopulatedWatchlist: Prices updated
     
     PopulatedWatchlist --> StockClicked: User clicks stock
@@ -179,7 +179,7 @@ stateDiagram-v2
     Conflict --> ResolvingConflict: Fetch latest data
     ResolvingConflict --> Synchronized: Conflict resolved
     
-    Synchronized --> RefetchingData: 45s interval / Manual refresh
+    Synchronized --> RefetchingData: 30s interval / Manual refresh
     RefetchingData --> Synchronized: Data updated
     
     Synchronized --> [*]

@@ -1,6 +1,6 @@
 # Class Diagram
 
-This diagram shows the component structure and relationships in the Stock Trading Application.
+This diagram shows the component structure and relationships in the Fingrow platform.
 
 ```mermaid
 classDiagram

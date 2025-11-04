@@ -1,6 +1,6 @@
-# Stock Trading Application - UML Diagrams
+# Fingrow - UML Diagrams
 
-This directory contains comprehensive UML diagrams for the Stock Trading Application.
+This directory contains comprehensive UML diagrams for the Fingrow Stock Trading Platform.
 
 ## 📊 Available Diagrams
 
@@ -81,11 +81,12 @@ Shows specific instances of objects at a particular moment in time.
 
 ## 🔄 Real-time Features
 
-The application implements real-time updates every 45 seconds for:
+The application implements real-time updates every 30 seconds for:
 - Stock prices in Portfolio
 - Stock prices in Watchlist
 - Stock prices in StockDetails
 - Top Stocks display
+- Portfolio Analytics
 
 ## 💾 Database Schema
 

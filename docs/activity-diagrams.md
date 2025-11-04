@@ -104,11 +104,11 @@ flowchart TD
 
 ```mermaid
 flowchart TD
-    Start([Component Mounts]) --> Setup[Setup React Query with 45s Interval]
+    Start([Component Mounts]) --> Setup[Setup React Query with 30s Interval]
     Setup --> InitFetch[Initial Data Fetch]
     InitFetch --> Display[Display Data]
     
-    Display --> Wait[Wait 45 Seconds]
+    Display --> Wait[Wait 30 Seconds]
     Wait --> Trigger[Timer Triggers Refetch]
     Trigger --> FetchNew[Fetch Fresh Stock Data]
     FetchNew --> GenPrice[Generate Random Price Changes]
