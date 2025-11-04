@@ -26,7 +26,7 @@ export const TopStocks = ({ onSelectStock }: TopStocksProps) => {
       }));
     },
     staleTime: 0,
-    refetchInterval: 45000, // Refresh every 45 seconds
+    refetchInterval: 30000, // Refresh every 30 seconds
   });
 
   if (isLoading) {

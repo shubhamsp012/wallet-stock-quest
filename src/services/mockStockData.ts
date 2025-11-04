@@ -41,9 +41,9 @@ const baseStocks = [
   { symbol: "KOTAKBANK.NS", name: "Kotak Mahindra Bank", basePrice: 1880, sector: "Banking" },
 ];
 
-// Get seeded random for consistent prices across 45-second windows
+// Get seeded random for consistent prices across 30-second windows
 const getSeededRandom = (symbol: string, index: number) => {
-  const timeWindow = Math.floor(Date.now() / 45000); // 45-second windows
+  const timeWindow = Math.floor(Date.now() / 30000); // 30-second windows
   const seed = symbol.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0) + timeWindow + index;
   const x = Math.sin(seed) * 10000;
   return x - Math.floor(x);
