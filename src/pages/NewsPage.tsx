@@ -30,8 +30,9 @@ const NewsPage = () => {
   return (
     <div className="min-h-screen bg-background">
       <Header />
-      <main className="container mx-auto px-4 py-6">
-        <h1 className="text-3xl font-bold mb-6">Market News</h1>
+      <main className="container mx-auto px-6 py-10">
+        <h1 className="text-4xl font-light mb-3 tracking-tight">Market News</h1>
+        <p className="text-muted-foreground mb-10 text-lg font-light">Stay updated with the latest market trends</p>
         <div className="max-w-4xl">
           <NewsSection />
         </div>

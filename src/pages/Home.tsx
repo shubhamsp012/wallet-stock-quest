@@ -2,7 +2,7 @@ import { useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Header } from "@/components/Dashboard/Header";
-import { Card, CardContent } from "@/components/ui/card";
+import { Card, CardHeader } from "@/components/ui/card";
 import { LayoutDashboard, Newspaper, TrendingUp, Loader2 } from "lucide-react";
 
 const Home = () => {
@@ -54,31 +54,32 @@ const Home = () => {
   return (
     <div className="min-h-screen bg-background">
       <Header />
-      <main className="container mx-auto px-4 py-12">
-        <div className="text-center mb-12">
-          <h1 className="text-4xl font-bold mb-4">Welcome to Fingrow</h1>
-          <p className="text-muted-foreground text-lg">
-            Choose a section to get started with real-time stock trading
+      <main className="container mx-auto px-6 py-20">
+        <div className="max-w-5xl mx-auto text-center mb-20">
+          <h1 className="text-6xl md:text-7xl font-light mb-8 tracking-tight">
+            Welcome to Fingrow
+          </h1>
+          <p className="text-xl text-muted-foreground font-light max-w-2xl mx-auto leading-relaxed">
+            Your intelligent stock trading companion. Track, analyze, and grow your portfolio with confidence.
           </p>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 max-w-5xl mx-auto">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl mx-auto">
           {sections.map((section) => {
             const Icon = section.icon;
             return (
               <Card
                 key={section.path}
-                className="cursor-pointer hover:shadow-lg transition-all duration-300 hover:-translate-y-1 overflow-hidden group"
+                className="group cursor-pointer transition-all hover:shadow-lg hover:-translate-y-1 bg-card/50 backdrop-blur"
                 onClick={() => navigate(section.path)}
               >
-                <div className={`h-2 bg-gradient-to-r ${section.gradient}`} />
-                <CardContent className="p-6">
-                  <div className={`w-16 h-16 rounded-lg bg-gradient-to-br ${section.gradient} flex items-center justify-center mb-4 group-hover:scale-110 transition-transform`}>
-                    <Icon className="h-8 w-8 text-white" />
+                <CardHeader className="space-y-4">
+                  <div className="w-14 h-14 rounded-2xl bg-primary/10 flex items-center justify-center group-hover:bg-primary/20 transition-colors">
+                    <Icon className="h-7 w-7 text-primary" />
                   </div>
-                  <h2 className="text-2xl font-bold mb-2">{section.title}</h2>
-                  <p className="text-muted-foreground">{section.description}</p>
-                </CardContent>
+                  <h2 className="text-xl font-light">{section.title}</h2>
+                  <p className="text-base leading-relaxed text-muted-foreground">{section.description}</p>
+                </CardHeader>
               </Card>
             );
           })}

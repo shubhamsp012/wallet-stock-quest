@@ -71,16 +71,21 @@ const Auth = () => {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background via-background to-primary/5 p-4">
-      <Card className="w-full max-w-md">
-        <CardHeader className="space-y-1 text-center">
-          <div className="flex justify-center mb-4">
-            <div className="p-3 bg-primary/10 rounded-full">
-              <TrendingUp className="h-8 w-8 text-primary" />
+    <div className="min-h-screen flex items-center justify-center bg-background p-4">
+      <Card className="w-full max-w-md shadow-lg">
+        <CardHeader className="space-y-6">
+          <div className="flex items-center justify-center gap-3">
+            <div className="p-2 rounded-xl bg-primary text-primary-foreground">
+              <TrendingUp className="h-6 w-6" />
             </div>
+            <span className="text-3xl font-light tracking-tight">Fingrow</span>
           </div>
-          <CardTitle className="text-2xl font-bold">Stock Trading Simulator</CardTitle>
-          <CardDescription>Start trading with ₹1,00,000 virtual money</CardDescription>
+          <div className="text-center space-y-2">
+            <CardTitle className="text-2xl font-light">Stock Trading Simulator</CardTitle>
+            <CardDescription className="text-base">
+              Trade stocks in a risk-free environment
+            </CardDescription>
+          </div>
         </CardHeader>
         <CardContent>
           <Tabs defaultValue="signin" className="w-full">

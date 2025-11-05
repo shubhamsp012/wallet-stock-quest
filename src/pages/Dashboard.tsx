@@ -35,16 +35,16 @@ const Dashboard = () => {
   return (
     <div className="min-h-screen bg-background">
       <Header />
-      <main className="container mx-auto px-4 py-6">
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2 space-y-6">
+      <main className="container mx-auto px-6 py-10">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <div className="lg:col-span-2 space-y-8">
             <WalletCard />
             <TopStocks onSelectStock={setSelectedStock} />
             <StockSearch onSelectStock={setSelectedStock} />
             {selectedStock && <StockDetails symbol={selectedStock} />}
           </div>
 
-          <div className="space-y-6">
+          <div className="space-y-8">
             <Watchlist onSelectStock={setSelectedStock} />
           </div>
         </div>
