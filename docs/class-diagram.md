@@ -3,205 +3,56 @@
 This diagram shows the component structure and relationships in the Fingrow platform.
 
 ```mermaid
+%%{init: {'theme':'base', 'themeVariables': {'primaryColor':'#fff','primaryTextColor':'#000','primaryBorderColor':'#000','lineColor':'#000','fontSize':'14px'}}}%%
 classDiagram
-    class App {
-        +Router
-        +AuthProvider
-        +ThemeProvider
-        +QueryClientProvider
+    class User {
+        +string id
+        +string email
+        +login()
+        +logout()
     }
     
-    class AuthContext {
-        -User user
-        -Session session
-        -boolean loading
-        +signOut()
-        +useAuth()
-    }
-    
-    class ThemeContext {
-        -Theme theme
-        +toggleTheme()
-        +useTheme()
-    }
-    
-    class Dashboard {
-        -string selectedStock
-        +setSelectedStock()
-        +render()
+    class Profile {
+        +string userId
+        +number walletBalance
+        +updateBalance()
     }
     
     class Portfolio {
-        -PortfolioItem[] portfolio
-        -boolean loading
-        +calculateTotals()
-        +handleSell()
-        +render()
+        +string symbol
+        +number quantity
+        +number avgBuyPrice
+        +calculatePL()
     }
     
-    class WalletCard {
-        -number balance
-        -boolean loading
-        +fetchBalance()
-        +render()
-    }
-    
-    class StockSearch {
-        -string searchQuery
-        -boolean searching
-        +handleSearch()
-        +render()
-    }
-    
-    class StockDetails {
-        -string symbol
-        -StockData stockData
-        -boolean inWatchlist
-        +fetchStockData()
-        +addToWatchlist()
-        +removeFromWatchlist()
-        +handleBuy()
-        +handleSell()
-        +render()
-    }
-    
-    class TradeModal {
-        -string symbol
-        -string type
-        -number quantity
-        -number totalPrice
-        +validateTrade()
-        +executeTrade()
-        +render()
+    class Transaction {
+        +string type
+        +string symbol
+        +number quantity
+        +number price
+        +date createdAt
     }
     
     class Watchlist {
-        -WatchlistItem[] watchlist
-        -boolean loading
-        +fetchWatchlist()
-        +removeFromWatchlist()
-        +render()
-    }
-    
-    class TopStocks {
-        -StockData[] topStocks
-        +fetchTopStocks()
-        +render()
-    }
-    
-    class NewsSection {
-        -NewsItem[] news
-        +fetchNews()
-        +render()
-    }
-    
-    class Header {
-        -User user
-        +navigate()
-        +toggleTheme()
-        +signOut()
-        +render()
-    }
-    
-    class SupabaseClient {
-        -string url
-        -string anonKey
-        +auth
-        +from()
-        +rpc()
-    }
-    
-    class MockStockData {
-        +getMockStockData(symbol)
-        +getAllMockStocks()
-        +searchMockStocks(query)
-        +generateHistoricalData()
+        +string symbol
+        +addStock()
+        +removeStock()
     }
     
     class StockData {
         +string symbol
         +string name
-        +number currentPrice
-        +number previousClose
-        +number changePercent
-        +HistoricalData[] historicalData
-        +number high
-        +number low
-        +number volume
-        +string sector
+        +number price
+        +number change
     }
     
-    class PortfolioItem {
-        +string id
-        +string userId
-        +string symbol
-        +number quantity
-        +string averageBuyPrice
-        +string createdAt
-    }
-    
-    class Transaction {
-        +string id
-        +string userId
-        +string symbol
-        +string type
-        +number quantity
-        +string price
-        +string totalAmount
-        +string createdAt
-    }
-    
-    class WatchlistItem {
-        +string id
-        +string userId
-        +string symbol
-        +string createdAt
-    }
-    
-    class Profile {
-        +string id
-        +string userId
-        +string walletBalance
-        +string createdAt
-        +string updatedAt
-    }
-    
-    %% Relationships
-    App --> AuthContext : provides
-    App --> ThemeContext : provides
-    App --> Dashboard : routes to
-    
-    Dashboard --> Header : uses
-    Dashboard --> WalletCard : uses
-    Dashboard --> StockSearch : uses
-    Dashboard --> StockDetails : uses
-    Dashboard --> Watchlist : uses
-    Dashboard --> TopStocks : uses
-    
-    Portfolio --> Header : uses
-    Portfolio --> WalletCard : uses
-    Portfolio --> TradeModal : uses
-    
-    StockDetails --> TradeModal : uses
-    StockDetails --> MockStockData : fetches from
-    
-    Portfolio --> SupabaseClient : queries
-    WalletCard --> SupabaseClient : queries
-    Watchlist --> SupabaseClient : queries
-    TradeModal --> SupabaseClient : mutates
-    
-    StockDetails --> StockData : displays
-    TopStocks --> StockData : displays
-    Portfolio --> PortfolioItem : displays
-    Watchlist --> WatchlistItem : displays
-    
-    TradeModal --> Transaction : creates
-    TradeModal --> PortfolioItem : updates
-    TradeModal --> Profile : updates
-    
-    AuthContext --> SupabaseClient : uses
-    
-    MockStockData --> StockData : returns
+    User "1" --> "1" Profile
+    User "1" --> "*" Portfolio
+    User "1" --> "*" Transaction
+    User "1" --> "*" Watchlist
+    Portfolio --> StockData
+    Transaction --> StockData
+    Watchlist --> StockData
 ```
 
 ## Component Dependencies

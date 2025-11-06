@@ -3,27 +3,18 @@
 This diagram shows the various use cases and actors in the Fingrow platform.
 
 ```mermaid
+%%{init: {'theme':'base', 'themeVariables': {'primaryColor':'#fff','primaryTextColor':'#000','primaryBorderColor':'#000','lineColor':'#000','secondaryColor':'#fff','tertiaryColor':'#fff','background':'#fff','fontSize':'16px'}}}%%
 graph TB
-    subgraph "Fingrow - Stock Trading Platform"
-        UC1[Login/Register]
-        UC2[View Dashboard]
-        UC3[Search Stocks]
-        UC4[View Stock Details]
-        UC5[Buy Stocks]
-        UC6[Sell Stocks]
-        UC7[View Portfolio]
-        UC8[Add to Watchlist]
-        UC9[Remove from Watchlist]
-        UC10[View Wallet Balance]
-        UC11[View Transaction History]
-        UC12[View Market News]
-        UC13[View Top Stocks]
-        UC14[Track Profit/Loss]
-        UC15[Real-time Price Updates]
-    end
-    
     User((User))
-    System((System))
+    
+    UC1[Login/Register]
+    UC2[Search Stocks]
+    UC3[View Stock Details]
+    UC4[Buy/Sell Stocks]
+    UC5[View Portfolio]
+    UC6[Manage Watchlist]
+    UC7[View Transactions]
+    UC8[Check Wallet]
     
     User --> UC1
     User --> UC2
@@ -33,25 +24,11 @@ graph TB
     User --> UC6
     User --> UC7
     User --> UC8
-    User --> UC9
-    User --> UC10
-    User --> UC11
-    User --> UC12
-    User --> UC13
-    User --> UC14
     
-    UC15 --> System
-    UC5 --> UC10
-    UC6 --> UC10
+    UC2 --> UC3
     UC3 --> UC4
-    UC4 --> UC5
-    UC4 --> UC6
+    UC3 --> UC6
     UC4 --> UC8
-    UC7 --> UC6
-    UC7 --> UC14
-    
-    style User fill:#4f46e5
-    style System fill:#10b981
 ```
 
 ## Use Case Descriptions
