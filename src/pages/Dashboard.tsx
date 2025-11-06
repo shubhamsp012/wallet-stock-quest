@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Header } from "@/components/Dashboard/Header";
-import { WalletCard } from "@/components/Dashboard/WalletCard";
 import { StockSearch } from "@/components/Dashboard/StockSearch";
 import { StockDetails } from "@/components/Dashboard/StockDetails";
 import { Watchlist } from "@/components/Dashboard/Watchlist";
@@ -38,7 +37,6 @@ const Dashboard = () => {
       <main className="container mx-auto px-6 py-10">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           <div className="lg:col-span-2 space-y-8">
-            <WalletCard />
             <TopStocks onSelectStock={setSelectedStock} />
             <StockSearch onSelectStock={setSelectedStock} />
             {selectedStock && <StockDetails symbol={selectedStock} />}
