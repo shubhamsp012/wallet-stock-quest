@@ -1,10 +1,13 @@
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Wallet } from "lucide-react";
+import { Wallet, Eye, EyeOff } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Button } from "@/components/ui/button";
 
 export const WalletCard = () => {
+  const [showBalance, setShowBalance] = useState(false);
   const { data: profile, isLoading } = useQuery({
     queryKey: ["profile"],
     queryFn: async () => {
@@ -37,18 +40,27 @@ export const WalletCard = () => {
   }
 
   return (
-    <Card className="shadow-lg hover:shadow-glow transition-all border-primary/20 animate-fade-in">
+    <Card className="shadow-lg hover:shadow-md transition-all animate-fade-in">
       <CardHeader className="flex flex-row items-center justify-between pb-2">
         <CardTitle className="text-sm font-medium flex items-center gap-2">
-          <div className="p-1.5 bg-gradient-primary rounded-lg shadow-glow">
-            <Wallet className="h-4 w-4 text-white" />
-          </div>
-          <span className="bg-gradient-primary bg-clip-text text-transparent">Wallet Balance</span>
+          <Wallet className="h-4 w-4" />
+          Wallet Balance
         </CardTitle>
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={() => setShowBalance(!showBalance)}
+          className="h-8 w-8 p-0"
+        >
+          {showBalance ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+        </Button>
       </CardHeader>
       <CardContent>
-        <div className="text-3xl font-bold bg-gradient-primary bg-clip-text text-transparent">
-          ₹{profile?.wallet_balance?.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+        <div className="text-3xl font-bold">
+          {showBalance 
+            ? `₹${profile?.wallet_balance?.toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+            : "••••••"
+          }
         </div>
         <p className="text-xs text-muted-foreground mt-1">Available for trading</p>
       </CardContent>
